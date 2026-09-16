@@ -1063,3 +1063,17 @@ end
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+
+-- ============================================================
+-- SECTION: CODE-CONTEXT BREADCRUMB (dropbar.nvim)
+-- ============================================================
+do
+  vim.pack.add { gh 'Bekaboo/dropbar.nvim' }
+
+  require('dropbar').setup()
+
+  local dropbar_api = require('dropbar.api')
+  vim.keymap.set('n', '<leader>;', dropbar_api.pick, { desc = 'Pick symbol in winbar' })
+  vim.keymap.set('n', '[;', dropbar_api.goto_context_start, { desc = 'Go to start of context' })
+  vim.keymap.set('n', '];', dropbar_api.select_next_context, { desc = 'Select next context' })
+end
