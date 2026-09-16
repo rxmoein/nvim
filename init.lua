@@ -99,7 +99,7 @@ do
   vim.g.maplocalleader = ' '
 
   -- Set to true if you have a Nerd Font installed and selected in the terminal
-  vim.g.have_nerd_font = false
+  vim.g.have_nerd_font = true
 
   -- [[ Setting options ]]
   --  See `:help vim.o`
@@ -188,7 +188,7 @@ do
   -- Diagnostic Config & Keymaps
   --  See `:help vim.diagnostic.Opts`
   vim.diagnostic.config {
-    update_in_insert = false,
+    update_in_insert = true,
     severity_sort = true,
     float = { border = 'rounded', source = 'if_many' },
     underline = { severity = { min = vim.diagnostic.severity.WARN } },
@@ -324,6 +324,27 @@ end
 ---@param repo string
 ---@return string
 local function gh(repo) return 'https://github.com/' .. repo end
+
+-- ============================================================
+-- SECTION: FILE EXPLORER, BUFFERS, SYMBOLS (snacks.nvim)
+-- ============================================================
+do
+  vim.pack.add { gh 'folke/snacks.nvim' }
+
+  require('snacks').setup {
+    explorer = { enabled = true },
+    picker = { enabled = true },
+  }
+
+  local map = vim.keymap.set
+  map('n', '<leader>e', function() Snacks.explorer() end, { desc = 'File Explorer' })
+  map('n', '<leader>,', function() Snacks.picker.buffers() end, { desc = 'Buffers' })
+  map('n', '<leader>bd', function() Snacks.bufdelete() end, { desc = 'Delete Buffer' })
+  map('n', '<leader>bo', function() Snacks.bufdelete.other() end, { desc = 'Delete Other Buffers' })
+  map('n', 'Q', function() Snacks.bufdelete() end, { desc = 'Delete Buffer' })
+  map('n', '<leader>ls', function() Snacks.picker.lsp_symbols() end, { desc = 'Document Symbols' })
+  map('n', '<leader>lS', function() Snacks.picker.lsp_workspace_symbols() end, { desc = 'Workspace Symbols' })
+end
 
 -- ============================================================
 -- SECTION 4: UI / CORE UX PLUGINS
@@ -733,6 +754,11 @@ do
   --  See `:help lsp-config` for information about keys and how to configure
   ---@type table<string, vim.lsp.Config>
   local servers = {
+    angularls = {},
+    ts_ls = {},
+    -- superhtml = {},
+    html = {},
+    cssls = {},
     -- clangd = {},
     -- gopls = {},
     -- pyright = {},
