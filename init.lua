@@ -251,6 +251,17 @@ do
     group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
     callback = function() vim.hl.on_yank() end,
   })
+
+  -- Reload a buffer when its file changes on disk (git, formatters, external tools).
+  -- Buffers with unsaved edits are never overwritten; Neovim asks first.
+  vim.o.autoread = true
+  vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold' }, {
+    desc = 'Reload file changed outside of Neovim',
+    group = vim.api.nvim_create_augroup('kickstart-autoread', { clear = true }),
+    callback = function()
+      if vim.fn.mode() ~= 'c' and vim.fn.getcmdwintype() == '' then vim.cmd.checktime() end
+    end,
+  })
 end
 
 -- ============================================================
