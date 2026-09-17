@@ -332,8 +332,27 @@ do
   vim.pack.add { gh 'folke/snacks.nvim' }
 
   require('snacks').setup {
+    dashboard = {
+      enabled = true,
+      -- The default 'startup' section needs lazy.nvim; this config uses vim.pack.
+      sections = {
+        { section = 'header' },
+        { section = 'keys', gap = 1, padding = 1 },
+      },
+    },
     explorer = { enabled = true },
-    picker = { enabled = true },
+    -- Indent guides; the scope the cursor is in is drawn brighter (SnacksIndentScope).
+    indent = {
+      enabled = true,
+      indent = { char = '│', only_scope = false, only_current = false },
+      scope = { enabled = true, char = '│', underline = false },
+      animate = { enabled = false },
+    },
+    picker = {
+      enabled = true,
+      -- Uniform outlined folder icon for closed and open directories (nf-md-folder_outline)
+      icons = { files = { dir = '󰉖 ', dir_open = '󰉖 ' } },
+    },
   }
 
   local map = vim.keymap.set
@@ -444,18 +463,19 @@ do
   -- change the command under that to load whatever the name of that colorscheme is.
   --
   -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-  vim.pack.add { gh 'folke/tokyonight.nvim' }
-  ---@diagnostic disable-next-line: missing-fields
-  require('tokyonight').setup {
-    styles = {
-      comments = { italic = false }, -- Disable italics in comments
-    },
+  -- Gruvbox, matching Doom Emacs' doom-gruvbox (classic palette, dark medium:
+  -- bg #282828, fg #ebdbb2). Set contrast = 'hard' for the #1d2021 variant.
+  vim.pack.add { gh 'ellisonleao/gruvbox.nvim' }
+
+  vim.o.background = 'dark'
+  require('gruvbox').setup {
+    contrast = '', -- '', 'soft' or 'hard'
+    italic = { strings = false, emphasis = true, comments = true, operators = false, folds = true },
+    bold = true,
+    transparent_mode = false,
   }
 
-  -- Load the colorscheme here.
-  -- Like many other themes, this one has different styles, and you could load
-  -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-  vim.cmd.colorscheme 'tokyonight-night'
+  vim.cmd.colorscheme 'gruvbox'
 
   -- Highlight todo, notes, etc in comments
   vim.pack.add { gh 'folke/todo-comments.nvim' }
@@ -467,9 +487,18 @@ do
 
   -- If a nerd font is available, load the icons module for pretty icons in various plugins.
   if vim.g.have_nerd_font then
-    require('mini.icons').setup()
+    require('mini.icons').setup { default = { directory = { glyph = '󰉖' } } }
     -- Used for backwards compatibility with plugins that require `nvim-web-devicons` (e.g. telescope.nvim)
     MiniIcons.mock_nvim_web_devicons()
+    -- mini.icons gives well-known folders (src, doc, config, ...) their own glyphs.
+    -- Use one outlined folder glyph for every directory instead, like a plain tree.
+    local mini_icons_get = MiniIcons.get
+    MiniIcons.get = function(category, name)
+      if category == 'directory' then
+        return '󰉖', 'MiniIconsAzure', false
+      end
+      return mini_icons_get(category, name)
+    end
   end
 
   -- Better Around/Inside textobjects
