@@ -361,8 +361,15 @@ do
     },
     picker = {
       enabled = true,
-      -- Uniform outlined folder icon for closed and open directories (nf-md-folder_outline)
-      icons = { files = { dir = '󰉖 ', dir_open = '󰉖 ' } },
+      -- Outlined folder for closed dirs (nf-md-folder_outline), outlined folder with a
+      -- check mark for open dirs (nf-md-folder_check_outline, U+F197F).
+      icons = { files = { dir = '󰉖 ', dir_open = '󱥿 ' } },
+      sources = {
+        explorer = {
+          -- Wider sidebar (default is 40 columns).
+          layout = { layout = { width = 55, min_width = 55 } },
+        },
+      },
     },
   }
 
