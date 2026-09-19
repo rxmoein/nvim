@@ -108,9 +108,9 @@ do
 
   -- Make line numbers default
   vim.o.number = true
-  -- You can also add relative line numbers, to help with jumping.
-  --  Experiment for yourself to see if you like it!
-  -- vim.o.relativenumber = true
+  -- Relative line numbers, to help with jumping. Combined with `number` above
+  -- this gives a "hybrid" gutter: absolute on the cursor line, relative elsewhere.
+  vim.o.relativenumber = true
 
   -- Enable mouse mode, can be useful for resizing splits for example!
   vim.o.mouse = 'a'
@@ -368,6 +368,8 @@ do
         explorer = {
           -- Wider sidebar (default is 40 columns).
           layout = { layout = { width = 55, min_width = 55 } },
+          -- Show dotfiles by default; `H` still toggles them, `I` toggles gitignored.
+          hidden = true,
         },
       },
     },
@@ -540,6 +542,22 @@ do
   -- - sd'   - [S]urround [D]elete [']quotes
   -- - sr)'  - [S]urround [R]eplace [)] [']
   require('mini.surround').setup()
+
+  -- Autoclose brackets and quotes: typing `(`, `[`, `{`, `"`, `'` or `` ` `` inserts the
+  -- pair with the cursor between them; typing the closing character just steps over it,
+  -- and <BS> between a pair deletes both halves.
+  --
+  -- <CR> between a pair expands it across three lines, e.g. with the cursor at `{|}`:
+  --     {
+  --         |
+  --     }
+  -- It does this via `<CR><C-o>O`, so the new lines are indented by whatever indent logic
+  -- the buffer already uses - the treesitter `indentexpr` set in SECTION 9 for Java, Lua,
+  -- etc., or 'autoindent'/'cindent' elsewhere. Nothing filetype-specific to maintain here.
+  --
+  -- Quotes are deliberately not registered for <CR> (mini's default): a line break inside
+  -- a string literal is rarely what you want.
+  require('mini.pairs').setup()
 
   -- Simple and easy statusline.
   --  You could remove this setup call if you don't like it,
@@ -799,10 +817,87 @@ do
   -- Enable the following language servers
   --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
   --  See `:help lsp-config` for information about keys and how to configure
+  -- Java toolchains available on this machine, newest first. SDKMAN installs
+  -- (`~/.sdkman/candidates/java/*`) and system JDKs (`/Library/Java/JavaVirtualMachines/*`)
+  -- are both picked up, so installing another JDK is enough - no edit here.
+  ---@type { name: string, path: string, default: boolean? }[]
+  local java_runtimes = {}
+  local gradle_java_home = nil
+  do
+    local seen, found = {}, {}
+    local roots = {
+      vim.fs.joinpath(vim.env.HOME, '.sdkman/candidates/java'),
+      '/Library/Java/JavaVirtualMachines',
+    }
+    for _, root in ipairs(roots) do
+      for name, type_ in vim.fs.dir(root) do
+        if (type_ == 'directory' or type_ == 'link') and name ~= 'current' then
+          -- A JDK home is either `<dir>` (SDKMAN) or `<dir>/Contents/Home` (macOS bundles).
+          local home = vim.fs.joinpath(root, name)
+          if not vim.uv.fs_stat(vim.fs.joinpath(home, 'bin/javac')) then home = vim.fs.joinpath(home, 'Contents/Home') end
+          local release = vim.fs.joinpath(home, 'release')
+          if vim.uv.fs_stat(vim.fs.joinpath(home, 'bin/javac')) and vim.uv.fs_stat(release) then
+            -- `release` is a properties file; JAVA_VERSION="21.0.12" -> feature version 21.
+            local version = table.concat(vim.fn.readfile(release), '\n'):match 'JAVA_VERSION="(%d+)'
+            if version and not seen[version] then
+              seen[version] = true
+              found[#found + 1] = { name = 'JavaSE-' .. version, path = home, version = tonumber(version) }
+            end
+          end
+        end
+      end
+    end
+    table.sort(found, function(a, b) return a.version > b.version end)
+    for i, jdk in ipairs(found) do
+      -- Newest JDK compiles single files and projects with no declared toolchain.
+      java_runtimes[i] = { name = jdk.name, path = jdk.path, default = i == 1 or nil }
+      -- Gradle runs on the newest LTS (17/21/25...), which it is far likelier to support
+      -- than a bleeding-edge release; fall back to the newest JDK if no LTS is installed.
+      if not gradle_java_home and (jdk.version == 25 or jdk.version == 21 or jdk.version == 17) then gradle_java_home = jdk.path end
+    end
+    gradle_java_home = gradle_java_home or (found[1] and found[1].path)
+  end
+
   ---@type table<string, vim.lsp.Config>
   local servers = {
     angularls = {},
     ts_ls = {},
+
+    -- Java: Eclipse JDT Language Server (installed by Mason as `jdtls`).
+    -- Needs a JDK 21+ on `$PATH`/`$JAVA_HOME` to run; the root dir is detected from
+    -- `gradlew`/`settings.gradle`/`pom.xml`/`.git`. Works for Gradle and Maven projects.
+    -- For the full Java experience (debugging, test runner, extra refactorings) swap this
+    -- for https://github.com/mfussenegger/nvim-jdtls.
+    jdtls = {
+      settings = {
+        java = {
+          configuration = {
+            -- JDKs jdtls may compile against. A project picks one via its build file
+            -- (Gradle `toolchain`/`sourceCompatibility`, Maven `maven.compiler.release`);
+            -- `default = true` is used for single files and projects that say nothing.
+            -- Names must be Eclipse execution environments: JavaSE-21, JavaSE-26, ...
+            runtimes = java_runtimes,
+          },
+          import = {
+            gradle = {
+              -- Gradle itself must run on a JDK it supports: Gradle cannot parse class
+              -- files from a JDK newer than it knows (a too-new JDK fails project import
+              -- with "Unsupported class file major version"). Pin the importer to the
+              -- newest LTS found above, independent of the JDK nvim/jdtls run on.
+              java = { home = gradle_java_home },
+            },
+          },
+        },
+      },
+    },
+
+    -- Gradle build scripts:
+    --   * `*.gradle`     -> groovy   (treesitter highlighting/indent, see SECTION 9)
+    --   * `*.gradle.kts` -> kotlin   (treesitter highlighting/indent, see SECTION 9)
+    -- Optional language servers for those files (both are heavyweight and need a JDK;
+    -- `gradle_ls` also needs a Gradle distribution):
+    -- gradle_ls = {},
+    -- kotlin_language_server = {},
     -- superhtml = {},
     html = {},
     cssls = {},
@@ -971,6 +1066,10 @@ do
       -- See `:help blink-cmp-config-keymap` for defining your own keymap
       preset = 'default',
 
+      -- <CR> accepts the highlighted item; when the menu is closed it falls
+      -- through to a normal newline. <C-y> from the preset keeps working.
+      ['<CR>'] = { 'accept', 'fallback' },
+
       -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
       --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
     },
@@ -1021,7 +1120,8 @@ do
   vim.pack.add { { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' } }
 
   -- Ensure basic parsers are installed
-  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+  -- `java`, `groovy` (*.gradle), `kotlin` (*.gradle.kts) and `xml` (pom.xml) cover Java + Gradle/Maven builds.
+  local parsers = { 'bash', 'c', 'diff', 'groovy', 'html', 'java', 'kotlin', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'xml' }
   require('nvim-treesitter').install(parsers)
 
   ---@param buf integer
@@ -1091,7 +1191,7 @@ do
   -- require 'kickstart.plugins.indent_line'
   -- require 'kickstart.plugins.lint'
   -- require 'kickstart.plugins.autopairs'
-  -- require 'kickstart.plugins.neo-tree'
+  require 'kickstart.plugins.neo-tree' -- `\` opens a tree with nested Java packages collapsed into one row
 
   -- NOTE: You can add your own plugins, configuration, etc. in `lua/custom/plugins/*.lua`.
   --
@@ -1106,6 +1206,7 @@ do
   -- require 'custom.plugins.colorscheme'
   -- require 'custom.plugins.ui'
   -- require 'custom.plugins.git'
+  require 'custom.plugins.floaterm' -- floating terminals; `<leader>gg` opens lazygit
 end
 
 -- The line beneath this is called `modeline`. See `:help modeline`
