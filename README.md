@@ -41,6 +41,10 @@ External Requirements:
   - If you want to write Typescript, you need `npm`
   - If you want to write Golang, you will need `go`
   - etc.
+- [lazygit](https://github.com/jesseduffield/lazygit) and
+  [delta](https://github.com/dandavison/delta): optional, see [Lazygit](#lazygit)
+- [kitty](https://sw.kovidgoyal.net/kitty/): the terminal this config is tuned
+  for, see [Kitty](#kitty)
 
 > [!NOTE]
 > See [Install Recipes](#Install-Recipes) for additional Windows and Linux specific notes
@@ -134,6 +138,100 @@ examples of adding popularly requested plugins.
 > [!NOTE]
 > For more information about a particular plugin check its repository's documentation.
 
+
+### Lazygit
+
+`lua/custom/plugins/floaterm.lua` opens lazygit in a floating terminal with
+`<leader>gg` or `<C-g>` (the same key hides it again). Lazygit itself and its
+diff highlighting are not part of this config, so set them up once per machine.
+
+#### Install
+
+```sh
+brew install lazygit git-delta
+```
+
+`delta` is the pager that gives the diff panel syntax highlighting. Without it
+lazygit falls back to plain red/green diffs.
+
+#### Diff highlighting
+
+Lazygit reads its config from `~/Library/Application Support/lazygit/config.yml`
+on macOS (`~/.config/lazygit/config.yml` on Linux). Add:
+
+```yaml
+git:
+  paging:
+    colorArg: always
+    pager: delta --dark --paging=never --line-numbers --hyperlinks
+```
+
+- Drop `--dark` on a light terminal theme.
+- Add `--side-by-side` for two columns; pair it with lazygit's full screen mode.
+- Pick a syntax theme with `delta --list-syntax-themes` and set it once:
+
+  ```sh
+  git config --global delta.syntax-theme "Monokai Extended"
+  ```
+
+Restart lazygit and open any file diff to confirm the colors.
+
+#### Reading diffs
+
+- `+` cycles the screen mode; full mode gives the diff panel the whole terminal.
+- `Enter` on a file opens the staging view with a larger diff.
+- `}` and `{` grow or shrink the context lines until the whole file is visible.
+- `Ctrl+W` toggles whitespace changes.
+
+### Kitty
+
+Kitty is not managed by this repo. Install it and copy the active settings
+below into `~/.config/kitty/kitty.conf`; everything else in that file is the
+commented default.
+
+```sh
+brew install --cask kitty
+```
+
+#### Active config
+
+```conf
+font_size 15.0
+hide_window_decorations yes
+
+#: Tabs: cmd-based so the keys never reach nvim, lazygit or the shell
+map cmd+1 goto_tab 1
+map cmd+2 goto_tab 2
+map cmd+3 goto_tab 3
+map cmd+4 goto_tab 4
+map cmd+5 goto_tab 5
+map cmd+6 goto_tab 6
+map cmd+7 goto_tab 7
+map cmd+8 goto_tab 8
+map cmd+9 goto_tab 9
+map cmd+shift+] next_tab
+map cmd+shift+[ previous_tab
+map cmd+t new_tab_with_cwd
+map cmd+w close_tab
+map cmd+shift+t set_tab_title
+map cmd+alt+] move_tab_forward
+map cmd+alt+[ move_tab_backward
+
+#: Free the ctrl combos for the shell and nvim
+map ctrl+tab no_op
+map ctrl+shift+tab no_op
+map ctrl+shift+left no_op
+map ctrl+shift+right no_op
+```
+
+#### Why cmd for tabs
+
+macOS never forwards `cmd` combinations to the program running inside the
+terminal, so these bindings cannot collide with the `ctrl+h/j/k/l` window
+moves or `<C-g>` lazygit toggle in this config. The kitty defaults on
+`ctrl+tab` and `ctrl+shift+arrow` are disabled for the same reason.
+
+Reload kitty with `ctrl+shift+f5` after editing the file.
 
 ### Getting Started
 
