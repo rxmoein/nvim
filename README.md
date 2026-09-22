@@ -123,6 +123,61 @@ the repo: [Lazygit](#lazygit) with delta diff highlighting, and the
 | `lua/kickstart/plugins/` | opt-in kickstart modules, enabled by uncommenting a `require` in `init.lua` |
 | `lua/kickstart/health.lua` | `:checkhealth kickstart` |
 
+## Keymaps
+
+Leader is `<Space>`. These are the mappings added on top of stock kickstart;
+`<Space>sk` lists every mapping with its description. LSP and git mappings are
+buffer-local and only exist where a server or gitsigns is attached.
+
+### Files and buffers
+
+| Keys | Mode | What it does |
+| :- | :- | :- |
+| `<Space>p` | n | Opens a floating "Recent files" list of open buffers, most recently viewed first, with the previous file preselected. Move with `j`/`k`/`gg`/`G`, open with `<Space>`, `h`, `l` or `<CR>`, cancel with `<Esc>` or `q`. |
+| `<Tab>` | n | Jumps straight to the previously viewed file. Press again to come back, so it toggles between the last two files. Shares a keycode with `<C-i>` in most terminals. |
+| `<Space>e` | n | Toggles the snacks file explorer: opens it, focuses it and reveals the current file, or closes it when already focused. |
+| `\` | n | Reveals the current file in neo-tree, with nested Java packages collapsed into one row. |
+| `<Space>,` | n | Snacks buffer picker. |
+| `<Space>bd`, `Q` | n | Deletes the current buffer without closing the window. |
+| `<Space>bo` | n | Deletes every buffer except the current one. |
+
+### Diagnostics and code
+
+| Keys | Mode | What it does |
+| :- | :- | :- |
+| `gl` | n | Opens a floating window with the full diagnostic messages for the current line, useful when the inline text is truncated. Press again to move into the float and yank from it. |
+| `<Space>ci` | n | Imports the unresolved symbol under the cursor. Applies directly when one import matches, shows a picker when the name is ambiguous. |
+| `<Space>co` | n | Organizes imports in the whole file: adds missing ones and removes unused ones. |
+| `<Space>ls` | n | Snacks picker over the symbols in the current document. |
+| `<Space>lS` | n | Snacks picker over the symbols in the whole workspace. |
+| `<Space>;` | n | Picks a symbol from the dropbar breadcrumb in the winbar. |
+| `[;` / `];` | n | Jumps to the start of the enclosing context, or selects the next context in the breadcrumb. |
+| `<Space>f` | n, v | Formats the buffer or selection with conform. |
+| `<Space>th` | n | Toggles LSP inlay hints. |
+
+### Git
+
+| Keys | Mode | What it does |
+| :- | :- | :- |
+| `<Space>gg`, `<C-g>` | n, t | Toggles lazygit in a floating terminal. `<C-g>` also works from inside the terminal, so one key shows and hides it. |
+| `]c` / `[c` | n | Jumps to the next or previous hunk. |
+| `<Space>hs` / `<Space>hr` | n, v | Stages or resets the hunk under the cursor, or the selected lines. |
+| `<Space>hS` / `<Space>hR` | n | Stages or resets the whole buffer. |
+| `<Space>hp` / `<Space>hi` | n | Previews the hunk in a float, or inline. |
+| `<Space>hb` | n | Shows the full blame for the current line. |
+| `<Space>hd` / `<Space>hD` | n | Diffs the buffer against the index, or against the last commit. |
+| `<Space>hq` / `<Space>hQ` | n | Puts the hunks of this file, or of the whole repo, in the quickfix list. |
+| `<Space>tb` / `<Space>tw` | n | Toggles the current-line blame, or intra-line word diff. |
+| `ih` | o, x | Text object for the hunk under the cursor, for example `vih` or `dih`. |
+
+### Windows and terminals
+
+| Keys | Mode | What it does |
+| :- | :- | :- |
+| `<C-h>` `<C-j>` `<C-k>` `<C-l>` | n | Moves focus to the window on that side. |
+| `<Space>gt`, `<F12>` | n, t | Toggles a floating terminal. `<F12>` also hides it from inside. |
+| `<Esc><Esc>` | t | Leaves terminal mode. |
+
 ## Lazygit
 
 `lua/custom/plugins/floaterm.lua` opens lazygit in a floating terminal with

@@ -663,13 +663,14 @@ do
   vim.keymap.set('n', '<leader>sc', builtin.commands, { desc = '[S]earch [C]ommands' })
   vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
 
-  -- Recent files picker: <leader>p opens a floating list of open files in most-recently-viewed
-  -- order with the previous file highlighted. Move with normal vim motions (j/k/gg/G), open the
-  -- highlighted file with <Space>, h, l or <CR>, cancel with <Esc> or q.
+  -- VS Code style Ctrl+Tab: tap <C-p> to jump to the previously viewed file, tap again quickly
+  -- to go further back. Terminals cannot report key release, so the cycle ends when you stop
+  -- tapping for `cycle_timeout_ms`; the file you landed on then becomes the most recent one.
   do
+    local cycle_timeout_ms = 750
     local mru = {} -- buffer numbers, most recently viewed first
-    local float_win, float_buf, origin_win
-    local group = vim.api.nvim_create_augroup('MruPicker', { clear = true })
+    local cycling, index = false, 0
+    local timer = vim.uv.new_timer()
 
     local function is_file_buffer(buf)
       return vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted and vim.api.nvim_buf_get_name(buf) ~= ''
@@ -689,90 +690,33 @@ do
       table.insert(mru, 1, buf)
     end
 
-    -- Seed the history from buffers that were already open, newest first.
-    local infos = vim.fn.getbufinfo { buflisted = 1 }
-    table.sort(infos, function(x, y) return x.lastused > y.lastused end)
-    for _, info in ipairs(infos) do
-      if is_file_buffer(info.bufnr) then table.insert(mru, info.bufnr) end
-    end
-
     vim.api.nvim_create_autocmd('BufEnter', {
-      group = group,
       desc = 'Track most recently viewed buffers',
       callback = function(args)
-        if is_file_buffer(args.buf) then touch(args.buf) end
+        if not cycling and is_file_buffer(args.buf) then touch(args.buf) end
       end,
     })
-    vim.api.nvim_create_autocmd('BufDelete', { group = group, callback = function(args) remove(args.buf) end })
+    vim.api.nvim_create_autocmd('BufDelete', { callback = function(args) remove(args.buf) end })
 
-    local function close_picker()
-      if float_win and vim.api.nvim_win_is_valid(float_win) then vim.api.nvim_win_close(float_win, true) end
-      float_win, float_buf = nil, nil
-    end
-
-    local function open_selected()
-      local target = mru[vim.api.nvim_win_get_cursor(float_win)[1]]
-      close_picker()
-      if target and is_file_buffer(target) and origin_win and vim.api.nvim_win_is_valid(origin_win) then
-        vim.api.nvim_set_current_win(origin_win)
-        vim.api.nvim_win_set_buf(origin_win, target)
-      end
-    end
-
-    vim.keymap.set('n', '<leader>p', function()
-      mru = vim.tbl_filter(is_file_buffer, mru)
-      if #mru < 2 then return end
-      origin_win = vim.api.nvim_get_current_win()
-
-      local lines = {}
-      for i, b in ipairs(mru) do
-        local name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ':~:.')
-        lines[i] = string.format(' %s%s ', name, vim.bo[b].modified and ' [+]' or '')
-      end
-      local width = 30
-      for _, l in ipairs(lines) do width = math.max(width, vim.fn.strdisplaywidth(l)) end
-      width = math.min(width, vim.o.columns - 4)
-      local height = math.min(#lines, math.max(1, math.floor(vim.o.lines * 0.5)))
-
-      float_buf = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_lines(float_buf, 0, -1, false, lines)
-      vim.bo[float_buf].modifiable = false
-      vim.bo[float_buf].bufhidden = 'wipe'
-      float_win = vim.api.nvim_open_win(float_buf, true, {
-        relative = 'editor',
-        style = 'minimal',
-        border = 'rounded',
-        title = ' Recent files ',
-        title_pos = 'center',
-        width = width,
-        height = height,
-        row = math.floor((vim.o.lines - height) / 2) - 1,
-        col = math.floor((vim.o.columns - width) / 2),
-      })
-      vim.wo[float_win].cursorline = true
-      -- gruvbox gives CursorLine and NormalFloat the same background, so use the completion-menu
-      -- selection colour for the active row and the editor background for the float itself.
-      vim.wo[float_win].winhighlight = 'CursorLine:PmenuSel,NormalFloat:Normal'
-      vim.api.nvim_win_set_cursor(float_win, { 2, 0 })
-
-      -- nowait: fire immediately instead of waiting for longer global mappings such as <leader>p
-      local opts = { buffer = float_buf, nowait = true, silent = true }
-      for _, key in ipairs { '<Space>', 'h', 'l', '<CR>' } do
-        vim.keymap.set('n', key, open_selected, opts)
-      end
-      for _, key in ipairs { '<Esc>', 'q' } do
-        vim.keymap.set('n', key, close_picker, opts)
-      end
-      vim.api.nvim_create_autocmd('BufLeave', { buffer = float_buf, once = true, callback = close_picker })
-    end, { desc = 'Recent files [P]icker (MRU)' })
-
-    -- <Tab> jumps straight to the previously viewed file (the same entry <leader>p highlights).
-    vim.keymap.set('n', '<Tab>', function()
-      mru = vim.tbl_filter(is_file_buffer, mru)
+    local function end_cycle()
+      cycling, index = false, 0
       local cur = vim.api.nvim_get_current_buf()
-      local target = mru[1] ~= cur and mru[1] or mru[2]
-      if target then vim.api.nvim_set_current_buf(target) end
-    end, { desc = 'Switch to previous file (MRU)' })
+      if is_file_buffer(cur) then touch(cur) end
+    end
+
+    vim.keymap.set('n', '<C-p>', function()
+      mru = vim.tbl_filter(is_file_buffer, mru)
+      if not cycling then
+        local cur = vim.api.nvim_get_current_buf()
+        if is_file_buffer(cur) then touch(cur) end
+        cycling, index = true, 1
+      end
+      if #mru < 2 then return end
+      index = index % #mru + 1
+      vim.api.nvim_set_current_buf(mru[index])
+      timer:stop()
+      timer:start(cycle_timeout_ms, 0, vim.schedule_wrap(end_cycle))
+    end, { desc = 'Cycle recently viewed files (MRU)' })
   end
 
   -- Add Telescope-based LSP pickers when an LSP attaches to a buffer.
@@ -895,21 +839,6 @@ do
       -- Execute a code action, usually your cursor needs to be on top of an error
       -- or a suggestion from your LSP for this to activate.
       map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
-
-      -- Import the unresolved symbol under the cursor without retyping it. Applies directly when
-      -- exactly one import matches; shows a picker only when the name is ambiguous.
-      map('<leader>ci', function()
-        vim.lsp.buf.code_action {
-          context = { only = { 'quickfix' } },
-          filter = function(action) return action.title:match '^Import' ~= nil end,
-          apply = true,
-        }
-      end, '[C]ode [I]mport symbol under cursor')
-
-      -- Add all missing imports and remove unused ones in the whole file.
-      map('<leader>co', function()
-        vim.lsp.buf.code_action { context = { only = { 'source.organizeImports' } }, apply = true }
-      end, '[C]ode [O]rganize imports')
 
       -- WARN: This is not Goto Definition, this is Goto Declaration.
       --  For example, in C this would take you to the header.
