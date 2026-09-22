@@ -376,7 +376,17 @@ do
   }
 
   local map = vim.keymap.set
-  map('n', '<leader>e', function() Snacks.explorer() end, { desc = 'File Explorer' })
+  map('n', '<leader>e', function()
+    local explorer = Snacks.picker.get({ source = 'explorer' })[1]
+    if not explorer then
+      Snacks.explorer()
+    elseif explorer:is_focused() then
+      explorer:close()
+    else
+      explorer:focus()
+      Snacks.explorer.reveal()
+    end
+  end, { desc = 'File Explorer' })
   map('n', '<leader>,', function() Snacks.picker.buffers() end, { desc = 'Buffers' })
   map('n', '<leader>bd', function() Snacks.bufdelete() end, { desc = 'Delete Buffer' })
   map('n', '<leader>bo', function() Snacks.bufdelete.other() end, { desc = 'Delete Other Buffers' })
@@ -869,6 +879,15 @@ do
     -- For the full Java experience (debugging, test runner, extra refactorings) swap this
     -- for https://github.com/mfussenegger/nvim-jdtls.
     jdtls = {
+      -- The Mason launcher runs jdtls on `$JAVA_HOME` (or `java` on `$PATH`) and needs 21+.
+      -- Point it at the newest LTS found above so the system Java 8 is never used.
+      cmd_env = { JAVA_HOME = gradle_java_home },
+      -- Lombok-generated members (`@Slf4j` -> `log`, `@Getter`, `@Builder`, ...) only
+      -- resolve when jdtls itself runs with the Lombok agent. Mason ships the jar.
+      cmd = {
+        vim.fn.stdpath 'data' .. '/mason/bin/jdtls',
+        '--jvm-arg=-javaagent:' .. vim.fn.stdpath 'data' .. '/mason/packages/jdtls/lombok.jar',
+      },
       settings = {
         java = {
           configuration = {
