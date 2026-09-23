@@ -214,6 +214,22 @@ do
     vim.diagnostic.open_float { scope = 'line' }
   end, { desc = 'Show [L]ine diagnostics in a float' })
 
+  -- Import the unresolved symbol under the cursor without retyping it. Applies directly when
+  -- exactly one import matches; shows a picker only when the name is ambiguous.
+  -- Global rather than in the LspAttach hook so a `:source` picks it up in open buffers too.
+  vim.keymap.set('n', '<leader>ci', function()
+    vim.lsp.buf.code_action {
+      context = { only = { 'quickfix' } },
+      filter = function(action) return action.title:match '^Import' ~= nil end,
+      apply = true,
+    }
+  end, { desc = '[C]ode [I]mport symbol under cursor' })
+
+  -- Add all missing imports and remove unused ones in the whole file.
+  vim.keymap.set('n', '<leader>co', function()
+    vim.lsp.buf.code_action { context = { only = { 'source.organizeImports' } }, apply = true }
+  end, { desc = '[C]ode [O]rganize imports' })
+
   -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
   -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
   -- is not what someone will guess without a bit more experience.
@@ -487,6 +503,10 @@ do
       { '<leader>t', group = '[T]oggle' },
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
       { 'gr', group = 'LSP Actions', mode = { 'n' } },
+      { '<leader>c', group = '[C]ode' },
+      { '<leader>b', group = '[B]uffer' },
+      { '<leader>l', group = '[L]SP symbols' },
+      { '<leader>g', group = '[G]it / terminal' },
     },
   }
 
@@ -669,6 +689,7 @@ do
   do
     local mru = {} -- buffer numbers, most recently viewed first
     local float_win, float_buf, origin_win
+    local icon_ns = vim.api.nvim_create_namespace 'mru_picker_icons'
     local group = vim.api.nvim_create_augroup('MruPicker', { clear = true })
 
     local function is_file_buffer(buf)
@@ -724,10 +745,15 @@ do
       if #mru < 2 then return end
       origin_win = vim.api.nvim_get_current_win()
 
-      local lines = {}
+      -- One row per buffer: " <icon> <path> [+]", with the icon coloured by mini.icons.
+      local lines, icon_hls = {}, {}
       for i, b in ipairs(mru) do
-        local name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(b), ':~:.')
-        lines[i] = string.format(' %s%s ', name, vim.bo[b].modified and ' [+]' or '')
+        local path = vim.api.nvim_buf_get_name(b)
+        local icon, hl = ' ', nil
+        if _G.MiniIcons then icon, hl = MiniIcons.get('file', path) end
+        local name = vim.fn.fnamemodify(path, ':~:.')
+        lines[i] = string.format(' %s %s%s ', icon, name, vim.bo[b].modified and ' [+]' or '')
+        icon_hls[i] = { hl = hl, len = #icon + 1 } -- byte length of " <icon>"
       end
       local width = 30
       for _, l in ipairs(lines) do width = math.max(width, vim.fn.strdisplaywidth(l)) end
@@ -736,6 +762,11 @@ do
 
       float_buf = vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_lines(float_buf, 0, -1, false, lines)
+      for i, entry in ipairs(icon_hls) do
+        if entry.hl then
+          vim.api.nvim_buf_set_extmark(float_buf, icon_ns, i - 1, 1, { end_col = entry.len, hl_group = entry.hl })
+        end
+      end
       vim.bo[float_buf].modifiable = false
       vim.bo[float_buf].bufhidden = 'wipe'
       float_win = vim.api.nvim_open_win(float_buf, true, {
@@ -750,8 +781,8 @@ do
         col = math.floor((vim.o.columns - width) / 2),
       })
       vim.wo[float_win].cursorline = true
-      -- gruvbox gives CursorLine and NormalFloat the same background, so use the completion-menu
-      -- selection colour for the active row and the editor background for the float itself.
+      -- Some colorschemes give CursorLine and NormalFloat the same background, so use the
+      -- completion-menu selection colour for the active row and the editor background for the float.
       vim.wo[float_win].winhighlight = 'CursorLine:PmenuSel,NormalFloat:Normal'
       vim.api.nvim_win_set_cursor(float_win, { 2, 0 })
 
@@ -895,21 +926,6 @@ do
       -- Execute a code action, usually your cursor needs to be on top of an error
       -- or a suggestion from your LSP for this to activate.
       map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
-
-      -- Import the unresolved symbol under the cursor without retyping it. Applies directly when
-      -- exactly one import matches; shows a picker only when the name is ambiguous.
-      map('<leader>ci', function()
-        vim.lsp.buf.code_action {
-          context = { only = { 'quickfix' } },
-          filter = function(action) return action.title:match '^Import' ~= nil end,
-          apply = true,
-        }
-      end, '[C]ode [I]mport symbol under cursor')
-
-      -- Add all missing imports and remove unused ones in the whole file.
-      map('<leader>co', function()
-        vim.lsp.buf.code_action { context = { only = { 'source.organizeImports' } }, apply = true }
-      end, '[C]ode [O]rganize imports')
 
       -- WARN: This is not Goto Definition, this is Goto Declaration.
       --  For example, in C this would take you to the header.
