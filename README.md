@@ -1,8 +1,10 @@
 # nvim
 
 Personal Neovim config, grown out of [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim).
-Everything lives in one `init.lua` plus `lua/custom/plugins/`, and plugins are
-managed with the built-in `vim.pack`, so there is no plugin manager to install.
+`init.lua` is kept close to stock kickstart; everything added on top lives in
+`lua/customizations/`, one file per feature, each starting with a comment that
+says what it does. Plugins are managed with the built-in `vim.pack`, so there
+is no plugin manager to install.
 
 This document is the checklist for reproducing the setup on a new machine.
 
@@ -75,13 +77,13 @@ brew install --cask temurin@21
 `java -version` on `$PATH` may still be an older JDK; that is fine as long as a
 21+ JDK exists in one of the scanned locations.
 
-**Optional, off by default.** `lua/kickstart/plugins/` holds opt-in modules
-enabled at the bottom of `init.lua`. Only `neo-tree.lua` is switched on; the
-rest are commented out:
+**Optional, off by default.** `lua/kickstart/plugins/` holds kickstart's
+opt-in modules, enabled in SECTION 10 of `init.lua`. All are commented out
+(the tree comes from `lua/customizations/neo-tree.lua` instead):
 
 - `debug.lua`: `nvim-dap` with `delve` for Go. Needs `brew install go`.
 - `lint.lua`: `markdownlint` for Markdown. Install via `:Mason` or `npm i -g markdownlint-cli`.
-- `indent_line.lua`, `autopairs.lua`: no dependencies.
+- `indent_line.lua`, `autopairs.lua`, `neo-tree.lua`: no dependencies.
 
 ### 5. Clone the config
 
@@ -96,11 +98,13 @@ nvim
 ```
 
 - `vim.pack` clones every plugin on the first launch and builds `fzf-native`.
-- Mason installs the servers listed in `init.lua` (SECTION 6). Watch progress
-  with `:Mason`.
+- Mason installs the servers listed in `init.lua` (SECTION 6) plus those in
+  `lua/customizations/lsp-java.lua` and `lsp-web.lua`. Watch progress with
+  `:Mason`.
 - Treesitter installs the parsers listed in SECTION 9 (`bash`, `c`, `diff`,
-  `groovy`, `html`, `java`, `kotlin`, `lua`, `luadoc`, `markdown`,
-  `markdown_inline`, `query`, `vim`, `vimdoc`, `xml`).
+  `html`, `lua`, `luadoc`, `markdown`, `markdown_inline`, `query`, `vim`,
+  `vimdoc`) plus `groovy`, `java`, `kotlin` and `xml` from
+  `lua/customizations/treesitter-java.lua`.
 - Run `:checkhealth kickstart` to confirm the Neovim version and the core
   tools. Mason warnings for languages you do not use can be ignored.
 
@@ -117,17 +121,53 @@ the repo: [Lazygit](#lazygit) with delta diff highlighting, and the
 
 | Path | Contents |
 | :- | :- |
-| `init.lua` | options, keymaps, plugins, LSP, formatting, completion, treesitter; split into numbered `SECTION` blocks |
-| `lua/custom/plugins/*.lua` | own additions, loaded automatically by `lua/custom/plugins/init.lua` |
-| `lua/custom/plugins/floaterm.lua` | floating terminals and the lazygit toggle |
+| `init.lua` | stock kickstart: options, keymaps, plugins, LSP, formatting, completion, treesitter; split into numbered `SECTION` blocks. Ends with `require 'customizations'` |
+| `lua/customizations/init.lua` | loads the customizations below in a fixed order; comment a line out to switch one off |
+| `lua/customizations/*.lua` | one file per customization, see the table below |
 | `lua/kickstart/plugins/` | opt-in kickstart modules, enabled by uncommenting a `require` in `init.lua` |
 | `lua/kickstart/health.lua` | `:checkhealth kickstart` |
+| `lua/custom/plugins/` | kickstart's original drop-in directory, unused |
+
+### Customizations
+
+Each file starts with a comment describing what it does and which keys it adds.
+
+| File | What it does |
+| :- | :- |
+| `colorscheme.lua` | gruvbox (doom-gruvbox palette) instead of tokyonight |
+| `options.lua` | relative line numbers |
+| `diagnostics.lua` | diagnostics refresh while typing; `gl` line diagnostics float |
+| `autoread.lua` | reload files changed on disk |
+| `autosave.lua` | write the buffer when leaving it for another one |
+| `imports.lua` | `<Space>ci` import symbol, `<Space>co` organize imports |
+| `java-indent.lua` | 4-space indent for Java buffers |
+| `gitsigns.lua` | IntelliJ-style gutter bars, hunk keymaps under `<Space>h` |
+| `folder-icons.lua` | one plain folder glyph for every directory |
+| `autopairs.lua` | mini.pairs: autoclose brackets and quotes, `<CR>` expands a pair |
+| `snacks.lua` | file explorer, buffer and symbol pickers, dashboard, indent guides |
+| `recent-files.lua` | `<Space>p` recent files picker, `<Tab>` previous file |
+| `neo-tree.lua` | `\` tree with nested Java packages collapsed into one row |
+| `floaterm.lua` | floating terminals, lazygit toggle |
+| `dropbar.lua` | breadcrumb winbar |
+| `format-toggle.lua` | `:FormatDisable` / `:FormatEnable` |
+| `java-format.lua` | IntelliJ formatter for Java, new-code-only formatting on save |
+| `treesitter-java.lua` | parsers for Java, Gradle and Maven files |
+| `lsp-java.lua` | jdtls with JDK auto-detection, Lombok and the IntelliJ-like profile (data module, merged in SECTION 6) |
+| `lsp-web.lua` | angularls, ts_ls, html, cssls (data module, merged in SECTION 6) |
+| `completion-keys.lua` | `<CR>` accepts a completion (data module, merged in SECTION 8) |
+
+The three data modules return tables that `init.lua` merges into kickstart's
+own `setup` calls, because those plugins read their configuration once.
 
 ## Keymaps
 
 Leader is `<Space>`. These are the mappings added on top of stock kickstart;
 `<Space>sk` lists every mapping with its description. LSP and git mappings are
 buffer-local and only exist where a server or gitsigns is attached.
+
+Files auto-save when you leave their buffer for another one (any switch: `:e`,
+pickers, `<Tab>`, go-to-definition). Only named, writable, non-scratch buffers
+are written, and the Java new-code formatting runs for those saves too.
 
 ### Files and buffers
 
@@ -178,9 +218,51 @@ buffer-local and only exist where a server or gitsigns is attached.
 | `<Space>gt`, `<F12>` | n, t | Toggles a floating terminal. `<F12>` also hides it from inside. |
 | `<Esc><Esc>` | t | Leaves terminal mode. |
 
+## Java formatting
+
+The team formats Java with IntelliJ's default code style, so Java is formatted
+with **IntelliJ's real formatting engine**, run standalone through
+[ICIJ/intellij-code-formatter](https://github.com/ICIJ/intellij-code-formatter)
+(embeds the IntelliJ 2025.3 platform, no IDE needed, works while the IDE is
+open). Output is byte-identical to "Reformat Code" with default settings,
+verified on files from the codebase. About 1 s per run.
+
+- `bin/intellij-format <file>` is the wrapper conform calls (formatter
+  `intellij`). It downloads the JAR (~160 MB) to
+  `~/.local/share/nvim/intellij-format/` on first use, picks a Java 21+ from
+  `JAVA_HOME`, sdkman or `/Library/Java`, and formats the file in place using
+  `intellij-default-scheme.xml` (IntelliJ defaults; swap in an exported scheme
+  to change the style). The version is pinned at the top of the script.
+- `<Space>f` formats the whole buffer with it.
+- Saving a Java file formats **only new code**: the write happens first, then
+  the whole buffer is formatted once into a temp copy, diffed against the
+  buffer, and only the differences that touch lines added or changed since
+  `vim.g.java_format_base` (default `HEAD`, set e.g. `'origin/master'` to mean
+  "since the branch point") are applied, after which the file is written again.
+  Untracked files are formatted whole. Lines you did not touch are never
+  changed, even if they were badly formatted before.
+- `:FormatDisable` / `:FormatDisable!` / `:FormatEnable` switch the save hook
+  off and on.
+- The same JAR has a `--check` mode (non-zero exit, lists files), usable in CI
+  if formatting should ever be enforced.
+
+**Fallback without IntelliJ.** jdtls uses the Eclipse formatter with
+`java-formatter.xml` (via `java.format.settings.url`), which approximates
+IntelliJ's defaults: 4-space indent, 8-space continuation, keep existing line
+breaks, never introduce new wraps, no comment reflow, method parameters and try
+resources aligned on the column, parentheses left where the author put them.
+Import order and star-import thresholds match IntelliJ too. Two things Eclipse
+cannot reproduce, verified against the codebase: annotations on record
+components are always joined onto the component line, and wrapped method
+parameters are always column-aligned (IntelliJ aligns only when the first
+parameter follows the `(`). Because of that, the fallback formats **only the
+git hunks you changed** on save (via gitsigns). The Java buffer options
+(`shiftwidth=4`, spaces) are set explicitly because jdtls takes the indent
+width from the format request, not from the profile.
+
 ## Lazygit
 
-`lua/custom/plugins/floaterm.lua` opens lazygit in a floating terminal with
+`lua/customizations/floaterm.lua` opens lazygit in a floating terminal with
 `<leader>gg` or `<C-g>` (the same key hides it again). Lazygit itself and its
 diff highlighting are not part of this config, so set them up once per machine.
 

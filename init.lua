@@ -108,9 +108,9 @@ do
 
   -- Make line numbers default
   vim.o.number = true
-  -- Relative line numbers, to help with jumping. Combined with `number` above
-  -- this gives a "hybrid" gutter: absolute on the cursor line, relative elsewhere.
-  vim.o.relativenumber = true
+  -- You can also add relative line numbers, to help with jumping.
+  --  Experiment for yourself to see if you like it!
+  -- vim.o.relativenumber = true   (enabled in lua/customizations/options.lua)
 
   -- Enable mouse mode, can be useful for resizing splits for example!
   vim.o.mouse = 'a'
@@ -188,7 +188,7 @@ do
   -- Diagnostic Config & Keymaps
   --  See `:help vim.diagnostic.Opts`
   vim.diagnostic.config {
-    update_in_insert = true,
+    update_in_insert = false, -- set to true in lua/customizations/diagnostics.lua
     severity_sort = true,
     float = { border = 'rounded', source = 'if_many' },
     underline = { severity = { min = vim.diagnostic.severity.WARN } },
@@ -210,25 +210,6 @@ do
   }
 
   vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
-  vim.keymap.set('n', 'gl', function()
-    vim.diagnostic.open_float { scope = 'line' }
-  end, { desc = 'Show [L]ine diagnostics in a float' })
-
-  -- Import the unresolved symbol under the cursor without retyping it. Applies directly when
-  -- exactly one import matches; shows a picker only when the name is ambiguous.
-  -- Global rather than in the LspAttach hook so a `:source` picks it up in open buffers too.
-  vim.keymap.set('n', '<leader>ci', function()
-    vim.lsp.buf.code_action {
-      context = { only = { 'quickfix' } },
-      filter = function(action) return action.title:match '^Import' ~= nil end,
-      apply = true,
-    }
-  end, { desc = '[C]ode [I]mport symbol under cursor' })
-
-  -- Add all missing imports and remove unused ones in the whole file.
-  vim.keymap.set('n', '<leader>co', function()
-    vim.lsp.buf.code_action { context = { only = { 'source.organizeImports' } }, apply = true }
-  end, { desc = '[C]ode [O]rganize imports' })
 
   -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
   -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -269,17 +250,6 @@ do
     desc = 'Highlight when yanking (copying) text',
     group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
     callback = function() vim.hl.on_yank() end,
-  })
-
-  -- Reload a buffer when its file changes on disk (git, formatters, external tools).
-  -- Buffers with unsaved edits are never overwritten; Neovim asks first.
-  vim.o.autoread = true
-  vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold' }, {
-    desc = 'Reload file changed outside of Neovim',
-    group = vim.api.nvim_create_augroup('kickstart-autoread', { clear = true }),
-    callback = function()
-      if vim.fn.mode() ~= 'c' and vim.fn.getcmdwintype() == '' then vim.cmd.checktime() end
-    end,
   })
 end
 
@@ -356,65 +326,6 @@ end
 local function gh(repo) return 'https://github.com/' .. repo end
 
 -- ============================================================
--- SECTION: FILE EXPLORER, BUFFERS, SYMBOLS (snacks.nvim)
--- ============================================================
-do
-  vim.pack.add { gh 'folke/snacks.nvim' }
-
-  require('snacks').setup {
-    dashboard = {
-      enabled = true,
-      -- The default 'startup' section needs lazy.nvim; this config uses vim.pack.
-      sections = {
-        { section = 'header' },
-        { section = 'keys', gap = 1, padding = 1 },
-      },
-    },
-    explorer = { enabled = true },
-    -- Indent guides; the scope the cursor is in is drawn brighter (SnacksIndentScope).
-    indent = {
-      enabled = true,
-      indent = { char = '│', only_scope = false, only_current = false },
-      scope = { enabled = true, char = '│', underline = false },
-      animate = { enabled = false },
-    },
-    picker = {
-      enabled = true,
-      -- Outlined folder for closed dirs (nf-md-folder_outline), outlined folder with a
-      -- check mark for open dirs (nf-md-folder_check_outline, U+F197F).
-      icons = { files = { dir = '󰉖 ', dir_open = '󱥿 ' } },
-      sources = {
-        explorer = {
-          -- Wider sidebar (default is 40 columns).
-          layout = { layout = { width = 55, min_width = 55 } },
-          -- Show dotfiles by default; `H` still toggles them, `I` toggles gitignored.
-          hidden = true,
-        },
-      },
-    },
-  }
-
-  local map = vim.keymap.set
-  map('n', '<leader>e', function()
-    local explorer = Snacks.picker.get({ source = 'explorer' })[1]
-    if not explorer then
-      Snacks.explorer()
-    elseif explorer:is_focused() then
-      explorer:close()
-    else
-      explorer:focus()
-      Snacks.explorer.reveal()
-    end
-  end, { desc = 'File Explorer' })
-  map('n', '<leader>,', function() Snacks.picker.buffers() end, { desc = 'Buffers' })
-  map('n', '<leader>bd', function() Snacks.bufdelete() end, { desc = 'Delete Buffer' })
-  map('n', '<leader>bo', function() Snacks.bufdelete.other() end, { desc = 'Delete Other Buffers' })
-  map('n', 'Q', function() Snacks.bufdelete() end, { desc = 'Delete Buffer' })
-  map('n', '<leader>ls', function() Snacks.picker.lsp_symbols() end, { desc = 'Document Symbols' })
-  map('n', '<leader>lS', function() Snacks.picker.lsp_workspace_symbols() end, { desc = 'Workspace Symbols' })
-end
-
--- ============================================================
 -- SECTION 4: UI / CORE UX PLUGINS
 -- guess-indent, gitsigns, which-key, colorscheme, todo-comments, mini modules
 -- ============================================================
@@ -438,58 +349,9 @@ do
   -- Here is a more advanced configuration example that passes options to `gitsigns.nvim`
   --
   -- See `:help gitsigns` to understand what each configuration key does.
-  -- Adds git related signs to the gutter, as well as utilities for managing changes
-  vim.pack.add { gh 'lewis6991/gitsigns.nvim' }
-  local gitsigns = require 'gitsigns'
-  gitsigns.setup {
-    signs = {
-      add = { text = '+' }, ---@diagnostic disable-line: missing-fields
-      change = { text = '~' }, ---@diagnostic disable-line: missing-fields
-      delete = { text = '_' }, ---@diagnostic disable-line: missing-fields
-      topdelete = { text = '‾' }, ---@diagnostic disable-line: missing-fields
-      changedelete = { text = '~' }, ---@diagnostic disable-line: missing-fields
-    },
-    -- gitsigns.nvim's recommended keymaps:
-    on_attach = function(bufnr)
-      -- Navigation
-      vim.keymap.set('n', ']c', function()
-        if vim.wo.diff then
-          vim.cmd.normal { ']c', bang = true }
-        else
-          gitsigns.nav_hunk 'next'
-        end
-      end, { desc = 'Jump to next git [c]hange', buf = bufnr })
-
-      vim.keymap.set('n', '[c', function()
-        if vim.wo.diff then
-          vim.cmd.normal { '[c', bang = true }
-        else
-          gitsigns.nav_hunk 'prev'
-        end
-      end, { desc = 'Jump to previous git [c]hange', buf = bufnr })
-
-      -- Visual mode actions
-      vim.keymap.set('v', '<leader>hs', function() gitsigns.stage_hunk { vim.fn.line '.', vim.fn.line 'v' } end, { desc = 'git [s]tage hunk', buf = bufnr })
-      vim.keymap.set('v', '<leader>hr', function() gitsigns.reset_hunk { vim.fn.line '.', vim.fn.line 'v' } end, { desc = 'git [r]eset hunk', buf = bufnr })
-      -- Normal mode actions
-      vim.keymap.set('n', '<leader>hs', gitsigns.stage_hunk, { desc = 'git [s]tage hunk', buf = bufnr })
-      vim.keymap.set('n', '<leader>hr', gitsigns.reset_hunk, { desc = 'git [r]eset hunk', buf = bufnr })
-      vim.keymap.set('n', '<leader>hS', gitsigns.stage_buffer, { desc = 'git [S]tage buffer', buf = bufnr })
-      vim.keymap.set('n', '<leader>hR', gitsigns.reset_buffer, { desc = 'git [R]eset buffer', buf = bufnr })
-      vim.keymap.set('n', '<leader>hp', gitsigns.preview_hunk, { desc = 'git [p]review hunk', buf = bufnr })
-      vim.keymap.set('n', '<leader>hi', gitsigns.preview_hunk_inline, { desc = 'git preview hunk [i]nline', buf = bufnr })
-      vim.keymap.set('n', '<leader>hb', function() gitsigns.blame_line { full = true } end, { desc = 'git [b]lame line', buf = bufnr })
-      vim.keymap.set('n', '<leader>hd', gitsigns.diffthis, { desc = 'git [d]iff against index', buf = bufnr })
-      vim.keymap.set('n', '<leader>hD', function() gitsigns.diffthis '~' end, { desc = 'git [D]iff against last commit', buf = bufnr })
-      vim.keymap.set('n', '<leader>hQ', function() gitsigns.setqflist 'all' end, { desc = 'git hunk [Q]uickfix list (all files in repo)', buf = bufnr })
-      vim.keymap.set('n', '<leader>hq', gitsigns.setqflist, { desc = 'git hunk [q]uickfix list (all changes in this file)', buf = bufnr })
-      -- Toggles
-      vim.keymap.set('n', '<leader>tb', gitsigns.toggle_current_line_blame, { desc = '[T]oggle git show [b]lame line', buf = bufnr })
-      vim.keymap.set('n', '<leader>tw', gitsigns.toggle_word_diff, { desc = '[T]oggle git intra-line [w]ord diff', buf = bufnr })
-      -- Text object
-      vim.keymap.set({ 'o', 'x' }, 'ih', gitsigns.select_hunk, { desc = 'text object [i]nside [h]unk', buf = bufnr })
-    end,
-  }
+  -- Adds git related signs to the gutter, as well as utilities for managing changes.
+  -- Its `setup` (IntelliJ-style signs + the recommended hunk keymaps) lives in
+  -- lua/customizations/gitsigns.lua, loaded at the bottom of this file.
 
   -- Useful plugin to show you pending keybinds.
   vim.pack.add { gh 'folke/which-key.nvim' }
@@ -503,10 +365,7 @@ do
       { '<leader>t', group = '[T]oggle' },
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
       { 'gr', group = 'LSP Actions', mode = { 'n' } },
-      { '<leader>c', group = '[C]ode' },
-      { '<leader>b', group = '[B]uffer' },
-      { '<leader>l', group = '[L]SP symbols' },
-      { '<leader>g', group = '[G]it / terminal' },
+      -- Customizations register their own groups with `require('which-key').add`.
     },
   }
 
@@ -516,19 +375,8 @@ do
   -- change the command under that to load whatever the name of that colorscheme is.
   --
   -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-  -- Gruvbox, matching Doom Emacs' doom-gruvbox (classic palette, dark medium:
-  -- bg #282828, fg #ebdbb2). Set contrast = 'hard' for the #1d2021 variant.
-  vim.pack.add { gh 'ellisonleao/gruvbox.nvim' }
-
-  vim.o.background = 'dark'
-  require('gruvbox').setup {
-    contrast = '', -- '', 'soft' or 'hard'
-    italic = { strings = false, emphasis = true, comments = true, operators = false, folds = true },
-    bold = true,
-    transparent_mode = false,
-  }
-
-  vim.cmd.colorscheme 'gruvbox'
+  --
+  -- The colorscheme (gruvbox) is set in lua/customizations/colorscheme.lua.
 
   -- Highlight todo, notes, etc in comments
   vim.pack.add { gh 'folke/todo-comments.nvim' }
@@ -540,18 +388,9 @@ do
 
   -- If a nerd font is available, load the icons module for pretty icons in various plugins.
   if vim.g.have_nerd_font then
-    require('mini.icons').setup { default = { directory = { glyph = '󰉖' } } }
+    require('mini.icons').setup()
     -- Used for backwards compatibility with plugins that require `nvim-web-devicons` (e.g. telescope.nvim)
     MiniIcons.mock_nvim_web_devicons()
-    -- mini.icons gives well-known folders (src, doc, config, ...) their own glyphs.
-    -- Use one outlined folder glyph for every directory instead, like a plain tree.
-    local mini_icons_get = MiniIcons.get
-    MiniIcons.get = function(category, name)
-      if category == 'directory' then
-        return '󰉖', 'MiniIconsAzure', false
-      end
-      return mini_icons_get(category, name)
-    end
   end
 
   -- Better Around/Inside textobjects
@@ -575,22 +414,6 @@ do
   -- - sd'   - [S]urround [D]elete [']quotes
   -- - sr)'  - [S]urround [R]eplace [)] [']
   require('mini.surround').setup()
-
-  -- Autoclose brackets and quotes: typing `(`, `[`, `{`, `"`, `'` or `` ` `` inserts the
-  -- pair with the cursor between them; typing the closing character just steps over it,
-  -- and <BS> between a pair deletes both halves.
-  --
-  -- <CR> between a pair expands it across three lines, e.g. with the cursor at `{|}`:
-  --     {
-  --         |
-  --     }
-  -- It does this via `<CR><C-o>O`, so the new lines are indented by whatever indent logic
-  -- the buffer already uses - the treesitter `indentexpr` set in SECTION 9 for Java, Lua,
-  -- etc., or 'autoindent'/'cindent' elsewhere. Nothing filetype-specific to maintain here.
-  --
-  -- Quotes are deliberately not registered for <CR> (mini's default): a line break inside
-  -- a string literal is rarely what you want.
-  require('mini.pairs').setup()
 
   -- Simple and easy statusline.
   --  You could remove this setup call if you don't like it,
@@ -682,129 +505,6 @@ do
   vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
   vim.keymap.set('n', '<leader>sc', builtin.commands, { desc = '[S]earch [C]ommands' })
   vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
-
-  -- Recent files picker: <leader>p opens a floating list of open files in most-recently-viewed
-  -- order with the previous file highlighted. Move with normal vim motions (j/k/gg/G), open the
-  -- highlighted file with <Space>, h, l or <CR>, cancel with <Esc> or q.
-  do
-    local mru = {} -- buffer numbers, most recently viewed first
-    local float_win, float_buf, origin_win
-    local icon_ns = vim.api.nvim_create_namespace 'mru_picker_icons'
-    local group = vim.api.nvim_create_augroup('MruPicker', { clear = true })
-
-    local function is_file_buffer(buf)
-      return vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted and vim.api.nvim_buf_get_name(buf) ~= ''
-    end
-
-    local function remove(buf)
-      for i, b in ipairs(mru) do
-        if b == buf then
-          table.remove(mru, i)
-          return
-        end
-      end
-    end
-
-    local function touch(buf)
-      remove(buf)
-      table.insert(mru, 1, buf)
-    end
-
-    -- Seed the history from buffers that were already open, newest first.
-    local infos = vim.fn.getbufinfo { buflisted = 1 }
-    table.sort(infos, function(x, y) return x.lastused > y.lastused end)
-    for _, info in ipairs(infos) do
-      if is_file_buffer(info.bufnr) then table.insert(mru, info.bufnr) end
-    end
-
-    vim.api.nvim_create_autocmd('BufEnter', {
-      group = group,
-      desc = 'Track most recently viewed buffers',
-      callback = function(args)
-        if is_file_buffer(args.buf) then touch(args.buf) end
-      end,
-    })
-    vim.api.nvim_create_autocmd('BufDelete', { group = group, callback = function(args) remove(args.buf) end })
-
-    local function close_picker()
-      if float_win and vim.api.nvim_win_is_valid(float_win) then vim.api.nvim_win_close(float_win, true) end
-      float_win, float_buf = nil, nil
-    end
-
-    local function open_selected()
-      local target = mru[vim.api.nvim_win_get_cursor(float_win)[1]]
-      close_picker()
-      if target and is_file_buffer(target) and origin_win and vim.api.nvim_win_is_valid(origin_win) then
-        vim.api.nvim_set_current_win(origin_win)
-        vim.api.nvim_win_set_buf(origin_win, target)
-      end
-    end
-
-    vim.keymap.set('n', '<leader>p', function()
-      mru = vim.tbl_filter(is_file_buffer, mru)
-      if #mru < 2 then return end
-      origin_win = vim.api.nvim_get_current_win()
-
-      -- One row per buffer: " <icon> <path> [+]", with the icon coloured by mini.icons.
-      local lines, icon_hls = {}, {}
-      for i, b in ipairs(mru) do
-        local path = vim.api.nvim_buf_get_name(b)
-        local icon, hl = ' ', nil
-        if _G.MiniIcons then icon, hl = MiniIcons.get('file', path) end
-        local name = vim.fn.fnamemodify(path, ':~:.')
-        lines[i] = string.format(' %s %s%s ', icon, name, vim.bo[b].modified and ' [+]' or '')
-        icon_hls[i] = { hl = hl, len = #icon + 1 } -- byte length of " <icon>"
-      end
-      local width = 30
-      for _, l in ipairs(lines) do width = math.max(width, vim.fn.strdisplaywidth(l)) end
-      width = math.min(width, vim.o.columns - 4)
-      local height = math.min(#lines, math.max(1, math.floor(vim.o.lines * 0.5)))
-
-      float_buf = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_lines(float_buf, 0, -1, false, lines)
-      for i, entry in ipairs(icon_hls) do
-        if entry.hl then
-          vim.api.nvim_buf_set_extmark(float_buf, icon_ns, i - 1, 1, { end_col = entry.len, hl_group = entry.hl })
-        end
-      end
-      vim.bo[float_buf].modifiable = false
-      vim.bo[float_buf].bufhidden = 'wipe'
-      float_win = vim.api.nvim_open_win(float_buf, true, {
-        relative = 'editor',
-        style = 'minimal',
-        border = 'rounded',
-        title = ' Recent files ',
-        title_pos = 'center',
-        width = width,
-        height = height,
-        row = math.floor((vim.o.lines - height) / 2) - 1,
-        col = math.floor((vim.o.columns - width) / 2),
-      })
-      vim.wo[float_win].cursorline = true
-      -- Some colorschemes give CursorLine and NormalFloat the same background, so use the
-      -- completion-menu selection colour for the active row and the editor background for the float.
-      vim.wo[float_win].winhighlight = 'CursorLine:PmenuSel,NormalFloat:Normal'
-      vim.api.nvim_win_set_cursor(float_win, { 2, 0 })
-
-      -- nowait: fire immediately instead of waiting for longer global mappings such as <leader>p
-      local opts = { buffer = float_buf, nowait = true, silent = true }
-      for _, key in ipairs { '<Space>', 'h', 'l', '<CR>' } do
-        vim.keymap.set('n', key, open_selected, opts)
-      end
-      for _, key in ipairs { '<Esc>', 'q' } do
-        vim.keymap.set('n', key, close_picker, opts)
-      end
-      vim.api.nvim_create_autocmd('BufLeave', { buffer = float_buf, once = true, callback = close_picker })
-    end, { desc = 'Recent files [P]icker (MRU)' })
-
-    -- <Tab> jumps straight to the previously viewed file (the same entry <leader>p highlights).
-    vim.keymap.set('n', '<Tab>', function()
-      mru = vim.tbl_filter(is_file_buffer, mru)
-      local cur = vim.api.nvim_get_current_buf()
-      local target = mru[1] ~= cur and mru[1] or mru[2]
-      if target then vim.api.nvim_set_current_buf(target) end
-    end, { desc = 'Switch to previous file (MRU)' })
-  end
 
   -- Add Telescope-based LSP pickers when an LSP attaches to a buffer.
   -- If you later switch picker plugins, this is where to update these mappings.
@@ -973,130 +673,8 @@ do
   -- Enable the following language servers
   --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
   --  See `:help lsp-config` for information about keys and how to configure
-  -- Java toolchains available on this machine, newest first. SDKMAN installs
-  -- (`~/.sdkman/candidates/java/*`) and system JDKs (`/Library/Java/JavaVirtualMachines/*`)
-  -- are both picked up, so installing another JDK is enough - no edit here.
-  ---@type { name: string, path: string, default: boolean? }[]
-  local java_runtimes = {}
-  local gradle_java_home = nil
-  do
-    local seen, found = {}, {}
-    local roots = {
-      vim.fs.joinpath(vim.env.HOME, '.sdkman/candidates/java'),
-      '/Library/Java/JavaVirtualMachines',
-    }
-    for _, root in ipairs(roots) do
-      for name, type_ in vim.fs.dir(root) do
-        if (type_ == 'directory' or type_ == 'link') and name ~= 'current' then
-          -- A JDK home is either `<dir>` (SDKMAN) or `<dir>/Contents/Home` (macOS bundles).
-          local home = vim.fs.joinpath(root, name)
-          if not vim.uv.fs_stat(vim.fs.joinpath(home, 'bin/javac')) then home = vim.fs.joinpath(home, 'Contents/Home') end
-          local release = vim.fs.joinpath(home, 'release')
-          if vim.uv.fs_stat(vim.fs.joinpath(home, 'bin/javac')) and vim.uv.fs_stat(release) then
-            -- `release` is a properties file; JAVA_VERSION="21.0.12" -> feature version 21.
-            local version = table.concat(vim.fn.readfile(release), '\n'):match 'JAVA_VERSION="(%d+)'
-            if version and not seen[version] then
-              seen[version] = true
-              found[#found + 1] = { name = 'JavaSE-' .. version, path = home, version = tonumber(version) }
-            end
-          end
-        end
-      end
-    end
-    table.sort(found, function(a, b) return a.version > b.version end)
-    for i, jdk in ipairs(found) do
-      -- Newest JDK compiles single files and projects with no declared toolchain.
-      java_runtimes[i] = { name = jdk.name, path = jdk.path, default = i == 1 or nil }
-      -- Gradle runs on the newest LTS (17/21/25...), which it is far likelier to support
-      -- than a bleeding-edge release; fall back to the newest JDK if no LTS is installed.
-      if not gradle_java_home and (jdk.version == 25 or jdk.version == 21 or jdk.version == 17) then gradle_java_home = jdk.path end
-    end
-    gradle_java_home = gradle_java_home or (found[1] and found[1].path)
-  end
-
   ---@type table<string, vim.lsp.Config>
   local servers = {
-    angularls = {},
-    ts_ls = {
-      settings = {
-        typescript = {
-          inlayHints = {
-            includeInlayParameterNameHints = 'all',
-            includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-            includeInlayFunctionParameterTypeHints = true,
-            includeInlayVariableTypeHints = false,
-            includeInlayPropertyDeclarationTypeHints = true,
-            includeInlayFunctionLikeReturnTypeHints = true,
-            includeInlayEnumMemberValueHints = true,
-          },
-        },
-        javascript = {
-          inlayHints = {
-            includeInlayParameterNameHints = 'all',
-            includeInlayParameterNameHintsWhenArgumentMatchesName = false,
-            includeInlayFunctionParameterTypeHints = true,
-            includeInlayVariableTypeHints = false,
-            includeInlayPropertyDeclarationTypeHints = true,
-            includeInlayFunctionLikeReturnTypeHints = true,
-            includeInlayEnumMemberValueHints = true,
-          },
-        },
-      },
-    },
-
-    -- Java: Eclipse JDT Language Server (installed by Mason as `jdtls`).
-    -- Needs a JDK 21+ on `$PATH`/`$JAVA_HOME` to run; the root dir is detected from
-    -- `gradlew`/`settings.gradle`/`pom.xml`/`.git`. Works for Gradle and Maven projects.
-    -- For the full Java experience (debugging, test runner, extra refactorings) swap this
-    -- for https://github.com/mfussenegger/nvim-jdtls.
-    jdtls = {
-      -- The Mason launcher runs jdtls on `$JAVA_HOME` (or `java` on `$PATH`) and needs 21+.
-      -- Point it at the newest LTS found above so the system Java 8 is never used.
-      cmd_env = { JAVA_HOME = gradle_java_home },
-      -- Lombok-generated members (`@Slf4j` -> `log`, `@Getter`, `@Builder`, ...) only
-      -- resolve when jdtls itself runs with the Lombok agent. Mason ships the jar.
-      cmd = {
-        vim.fn.stdpath 'data' .. '/mason/bin/jdtls',
-        '--jvm-arg=-javaagent:' .. vim.fn.stdpath 'data' .. '/mason/packages/jdtls/lombok.jar',
-      },
-      settings = {
-        java = {
-          inlayHints = {
-            parameterNames = {
-              enabled = 'all',
-              exclusions = { '*.of', '*.valueOf' },
-            },
-          },
-          configuration = {
-            -- JDKs jdtls may compile against. A project picks one via its build file
-            -- (Gradle `toolchain`/`sourceCompatibility`, Maven `maven.compiler.release`);
-            -- `default = true` is used for single files and projects that say nothing.
-            -- Names must be Eclipse execution environments: JavaSE-21, JavaSE-26, ...
-            runtimes = java_runtimes,
-          },
-          import = {
-            gradle = {
-              -- Gradle itself must run on a JDK it supports: Gradle cannot parse class
-              -- files from a JDK newer than it knows (a too-new JDK fails project import
-              -- with "Unsupported class file major version"). Pin the importer to the
-              -- newest LTS found above, independent of the JDK nvim/jdtls run on.
-              java = { home = gradle_java_home },
-            },
-          },
-        },
-      },
-    },
-
-    -- Gradle build scripts:
-    --   * `*.gradle`     -> groovy   (treesitter highlighting/indent, see SECTION 9)
-    --   * `*.gradle.kts` -> kotlin   (treesitter highlighting/indent, see SECTION 9)
-    -- Optional language servers for those files (both are heavyweight and need a JDK;
-    -- `gradle_ls` also needs a Gradle distribution):
-    -- gradle_ls = {},
-    -- kotlin_language_server = {},
-    -- superhtml = {},
-    html = {},
-    cssls = {},
     -- clangd = {},
     -- gopls = {},
     -- pyright = {},
@@ -1143,6 +721,15 @@ do
     },
   }
 
+  -- Servers added on top of kickstart's list, one file each in lua/customizations/:
+  --   lsp-java.lua -> jdtls with JDK auto-detection, Lombok and the IntelliJ-like profile
+  --   lsp-web.lua  -> angularls, ts_ls, html, cssls
+  for _, module in ipairs { 'customizations.lsp-java', 'customizations.lsp-web' } do
+    for name, config in pairs(require(module)) do
+      servers[name] = config
+    end
+  end
+
   vim.pack.add {
     gh 'neovim/nvim-lspconfig',
     gh 'mason-org/mason.nvim',
@@ -1185,31 +772,32 @@ end
 do
   -- [[ Formatting ]]
   vim.pack.add { gh 'stevearc/conform.nvim' }
+
   require('conform').setup {
-    notify_on_error = false,
+    notify_on_error = true, -- an external formatter failing (e.g. IntelliJ) should not be silent
+    formatters_by_ft = {
+      -- java is added by lua/customizations/java-format.lua (IntelliJ's formatter)
+      -- rust = { 'rustfmt' },
+      -- javascript = { "prettierd", "prettier", stop_after_first = true },
+    },
     format_on_save = function(bufnr)
-      -- You can specify filetypes to autoformat on save here:
+      -- `:FormatDisable` / `:FormatEnable` (lua/customizations/format-toggle.lua) set these flags.
+      if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then return nil end
+      -- Java is formatted on save by lua/customizations/java-format.lua (new code only).
+      if vim.bo[bufnr].filetype == 'java' then return nil end
+      -- Filetypes to autoformat (whole buffer) on save:
       local enabled_filetypes = {
         -- lua = true,
         -- python = true,
       }
       if enabled_filetypes[vim.bo[bufnr].filetype] then
-        return { timeout_ms = 500 }
+        return { timeout_ms = 3000, lsp_format = 'fallback' }
       else
         return nil
       end
     end,
     default_format_opts = {
-      lsp_format = 'fallback', -- Use external formatters if configured below, otherwise use LSP formatting. Set to `false` to disable LSP formatting entirely.
-    },
-    -- You can also specify external formatters in here.
-    formatters_by_ft = {
-      -- rust = { 'rustfmt' },
-      -- Conform can also run multiple formatters sequentially
-      -- python = { "isort", "black" },
-      --
-      -- You can use 'stop_after_first' to run the first available formatter from the list
-      -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      lsp_format = 'fallback', -- Use external formatters if configured above, otherwise use LSP formatting. Set to `false` to disable LSP formatting entirely.
     },
   }
 
@@ -1238,7 +826,9 @@ do
   -- [[ Autocomplete Engine ]]
   vim.pack.add { { src = gh 'saghen/blink.cmp', version = vim.version.range '1.*' } }
   require('blink.cmp').setup {
-    keymap = {
+    -- Extra keys (<CR> accepts) come from lua/customizations/completion-keys.lua; blink reads
+    -- its keymap once here, so they have to be merged into this table.
+    keymap = vim.tbl_extend('force', require 'customizations.completion-keys', {
       -- 'default' (recommended) for mappings similar to built-in completions
       --   <c-y> to accept ([y]es) the completion.
       --    This will auto-import if your LSP supports it.
@@ -1262,13 +852,9 @@ do
       -- See `:help blink-cmp-config-keymap` for defining your own keymap
       preset = 'default',
 
-      -- <CR> accepts the highlighted item; when the menu is closed it falls
-      -- through to a normal newline. <C-y> from the preset keeps working.
-      ['<CR>'] = { 'accept', 'fallback' },
-
       -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
       --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
-    },
+    }),
 
     appearance = {
       -- 'mono' (default) for 'Nerd Font Mono' or 'normal' for 'Nerd Font'
@@ -1315,9 +901,8 @@ do
   -- NOTE: You can also specify a branch or a specific commit
   vim.pack.add { { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' } }
 
-  -- Ensure basic parsers are installed
-  -- `java`, `groovy` (*.gradle), `kotlin` (*.gradle.kts) and `xml` (pom.xml) cover Java + Gradle/Maven builds.
-  local parsers = { 'bash', 'c', 'diff', 'groovy', 'html', 'java', 'kotlin', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'xml' }
+  -- Ensure basic parsers are installed (Java/Gradle/Maven parsers: lua/customizations/treesitter-java.lua)
+  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
   require('nvim-treesitter').install(parsers)
 
   ---@param buf integer
@@ -1387,7 +972,7 @@ do
   -- require 'kickstart.plugins.indent_line'
   -- require 'kickstart.plugins.lint'
   -- require 'kickstart.plugins.autopairs'
-  require 'kickstart.plugins.neo-tree' -- `\` opens a tree with nested Java packages collapsed into one row
+  -- require 'kickstart.plugins.neo-tree'  (a variant with collapsed Java packages is in lua/customizations/neo-tree.lua)
 
   -- NOTE: You can add your own plugins, configuration, etc. in `lua/custom/plugins/*.lua`.
   --
@@ -1402,22 +987,16 @@ do
   -- require 'custom.plugins.colorscheme'
   -- require 'custom.plugins.ui'
   -- require 'custom.plugins.git'
-  require 'custom.plugins.floaterm' -- floating terminals; `<leader>gg` opens lazygit
 end
+
+-- ============================================================
+-- SECTION 11: CUSTOMIZATIONS
+-- Everything added on top of kickstart, one file per feature
+-- ============================================================
+-- `lua/customizations/init.lua` lists the files in load order, each with a one-line summary;
+-- every file starts with a comment explaining what it does. Loaded last so all of the above
+-- (which-key, mini.icons, conform, treesitter, ...) is available to them.
+require 'customizations'
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
-
--- ============================================================
--- SECTION: CODE-CONTEXT BREADCRUMB (dropbar.nvim)
--- ============================================================
-do
-  vim.pack.add { gh 'Bekaboo/dropbar.nvim' }
-
-  require('dropbar').setup()
-
-  local dropbar_api = require('dropbar.api')
-  vim.keymap.set('n', '<leader>;', dropbar_api.pick, { desc = 'Pick symbol in winbar' })
-  vim.keymap.set('n', '[;', dropbar_api.goto_context_start, { desc = 'Go to start of context' })
-  vim.keymap.set('n', '];', dropbar_api.select_next_context, { desc = 'Select next context' })
-end
