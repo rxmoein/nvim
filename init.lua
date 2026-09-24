@@ -376,7 +376,7 @@ do
   --
   -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
   --
-  -- The colorscheme (gruvbox) is set in lua/customizations/colorscheme.lua.
+  -- The colorscheme (monokai-pro, spectrum filter) is set in lua/customizations/colorscheme.lua.
 
   -- Highlight todo, notes, etc in comments
   vim.pack.add { gh 'folke/todo-comments.nvim' }

@@ -11,7 +11,7 @@
 --   completion-keys.lua        -> blink.cmp keymap changes (SECTION 8)
 
 local modules = {
-  'customizations.colorscheme', -- gruvbox, first so plugins below pick up its colours
+  'customizations.colorscheme', -- monokai-pro (spectrum), first so plugins below pick up its colours
   'customizations.options', -- small option changes (relative line numbers)
   'customizations.animate', -- mini.animate: cursor trail and smooth scroll on big jumps
   'customizations.scroll', -- <C-d> / <C-u> scroll a quarter page

@@ -44,11 +44,11 @@ brew install ripgrep fd unzip tree-sitter
 a patched font.
 
 ```sh
-brew install --cask font-jetbrains-mono-nerd-font
+brew install --cask font-fira-code-nerd-font
 ```
 
-Select "JetBrainsMono Nerd Font" in the terminal. For kitty that is
-`font_family JetBrainsMono Nerd Font` in `kitty.conf`, see [Kitty](#kitty).
+Select "FiraCode Nerd Font" in the terminal. For kitty that is the
+`font_family` and `symbol_map` lines in `kitty.conf`, see [Kitty](#kitty).
 
 ### 4. Language runtimes
 
@@ -134,7 +134,7 @@ Each file starts with a comment describing what it does and which keys it adds.
 
 | File | What it does |
 | :- | :- |
-| `colorscheme.lua` | gruvbox (doom-gruvbox palette) instead of tokyonight |
+| `colorscheme.lua` | monokai-pro (spectrum filter) instead of tokyonight |
 | `options.lua` | relative line numbers |
 | `diagnostics.lua` | diagnostics refresh while typing; `gl` line diagnostics float |
 | `autoread.lua` | reload files changed on disk |
@@ -317,8 +317,22 @@ brew install --cask kitty
 ### Active config
 
 ```conf
-font_size 15.0
+#: Fonts: FiraCode Nerd Font everywhere, with the Nerd Font glyph ranges
+#: pinned to it so icons never fall back to another font
+font_family      family="FiraCode Nerd Font"
+bold_font        auto
+italic_font      auto
+bold_italic_font auto
+symbol_map U+e000-U+e00a,U+ea60-U+ebeb,U+e0a0-U+e0c8,U+e0ca,U+e0cc-U+e0d7,U+e200-U+e2a9,U+e300-U+e3e3,U+e5fa-U+e6b1,U+e700-U+e7c5,U+ed00-U+efc1,U+f000-U+f2ff,U+f300-U+f372,U+f400-U+f533,U+f0001-U+f1af0 FiraCode Nerd Font
+font_size 14.0
+
+#: Window: no title bar, content anchored top-left when the window size is
+#: not a multiple of the cell size
+placement_strategy top-left
 hide_window_decorations yes
+
+#: Color scheme: only the background is overridden
+background #1a1a1a
 
 #: Tabs: cmd-based so the keys never reach nvim, lazygit or the shell
 map cmd+1 goto_tab 1
@@ -344,6 +358,14 @@ map ctrl+shift+tab no_op
 map ctrl+shift+left no_op
 map ctrl+shift+right no_op
 ```
+
+### Fonts
+
+The `symbol_map` routes every Nerd Font private-use range (devicons,
+powerline, codicons, font awesome, material design icons and so on) to
+FiraCode Nerd Font explicitly. Without it kitty may pick the glyphs from
+another installed font, which shows up as mismatched or missing icons in the
+statusline, neo-tree and which-key.
 
 ### Why cmd for tabs
 
