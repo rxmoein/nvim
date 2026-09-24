@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Format one Java file in place with IntelliJ IDEA's formatting engine, via the standalone
+# ICIJ intellij-code-formatter (https://github.com/ICIJ/intellij-code-formatter).
+# Used by conform.nvim (stdin=false, $FILENAME). Byte-identical to "Reformat Code" in the IDE
+# with default settings; ~1 s per run; needs no IDE and works while one is open.
+#
+# The CLI only takes directories, so the file is copied into a scratch directory, formatted
+# there and copied back. Requires Java 21+ (found via JAVA_HOME, sdkman or /Library/Java).
+set -euo pipefail
+
+VERSION="1.0.5"
+DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/intellij-format"
+JAR="$DATA_DIR/intellij-code-formatter-$VERSION.jar"
+SCHEME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/intellij-default-scheme.xml"
+
+file="${1:?usage: intellij-format <file.java>}"
+
+if [[ ! -f "$JAR" ]]; then
+  mkdir -p "$DATA_DIR"
+  echo "intellij-format: downloading intellij-code-formatter $VERSION (~160 MB)..." >&2
+  curl -fsSL -o "$JAR.part" \
+    "https://github.com/ICIJ/intellij-code-formatter/releases/download/$VERSION/intellij-code-formatter-$VERSION.jar"
+  mv "$JAR.part" "$JAR"
+fi
+
+# Pick a Java >= 21.
+java_major() { sed -n 's/^JAVA_VERSION="\([0-9]*\).*/\1/p' "$1/release" 2>/dev/null; }
+JAVA=""
+for home in "${JAVA_HOME:-}" "$HOME"/.sdkman/candidates/java/*/ /Library/Java/JavaVirtualMachines/*/Contents/Home; do
+  [[ -n "$home" && -x "$home/bin/java" ]] || continue
+  v="$(java_major "$home")"
+  if [[ -n "$v" && "$v" -ge 21 ]]; then JAVA="$home/bin/java"; break; fi
+done
+if [[ -z "$JAVA" ]]; then
+  echo "intellij-format: no Java 21+ found (set JAVA_HOME)" >&2
+  exit 3
+fi
+
+work="$(mktemp -d "${TMPDIR:-/tmp}/intellij-format.XXXXXX")"
+trap 'rm -rf "$work"' EXIT
+cp "$file" "$work/$(basename "$file")"
+
+"$JAVA" -jar "$JAR" --style "$SCHEME" "$work" >/dev/null
+cp "$work/$(basename "$file")" "$file"

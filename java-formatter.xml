@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Eclipse JDT formatter profile approximating IntelliJ IDEA's default Java code style,
+  used by jdtls via `java.format.settings.url` in init.lua.
+  Only the options that differ from Eclipse defaults or that matter most are listed;
+  everything else keeps the Eclipse default, which already matches IntelliJ.
+-->
+<profiles version="21">
+  <profile kind="CodeFormatterProfile" name="IntelliJ Default" version="21">
+
+    <!-- Indentation: 4 spaces, continuation indent 8 (IntelliJ: indent 4, continuation 8) -->
+    <setting id="org.eclipse.jdt.core.formatter.tabulation.char" value="space"/>
+    <setting id="org.eclipse.jdt.core.formatter.tabulation.size" value="4"/>
+    <setting id="org.eclipse.jdt.core.formatter.indentation.size" value="4"/>
+    <setting id="org.eclipse.jdt.core.formatter.continuation_indentation" value="2"/>
+    <setting id="org.eclipse.jdt.core.formatter.continuation_indentation_for_array_initializer" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.use_tabs_only_for_leading_indentations" value="false"/>
+
+    <!-- IntelliJ defaults never wrap on reformat ("Do not wrap" + "Keep line breaks"), so the
+         margin is set out of reach: existing breaks are kept, new ones are never introduced. -->
+    <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="9999"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="120"/>
+
+    <!-- IntelliJ "Keep line breaks": never rejoin lines the author wrapped -->
+    <setting id="org.eclipse.jdt.core.formatter.join_wrapped_lines" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.join_lines_in_comments" value="false"/>
+
+    <!-- IntelliJ does not reflow comments by default -->
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_javadoc_comments" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_block_comments" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_line_comments" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_header" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_html" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_source_code" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.indent_parameter_description" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.insert_new_line_for_parameter" value="do not insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.clear_blank_lines_in_javadoc_comment" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.clear_blank_lines_in_block_comment" value="false"/>
+
+    <!-- Wrapped binary / ternary operators stay at the end of the line (IntelliJ default) -->
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_binary_operator" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_additive_operator" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_multiplicative_operator" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_logical_operator" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_bitwise_operator" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_relational_operator" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_shift_operator" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_string_concatenation" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_conditional_operator" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_assignment_operator" value="false"/>
+
+    <!-- Wrapping policies. 16 = continuation indent, 18 = align on column. With lineSplit out of
+         reach these only decide how *existing* wraps are indented. IntelliJ aligns method parameters
+         and try resources on the column; record components and call arguments use the continuation
+         indent. (IntelliJ aligns only when the first element follows the "(" on the same line; Eclipse
+         cannot express that, so the "(" + newline style of method declarations gets column-aligned.) -->
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_method_invocation" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_method_declaration" value="18"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_selector_in_method_invocation" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_binary_expression" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_conditional_expression" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_throws_clause_in_method_declaration" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_superinterfaces_in_type_declaration" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_expressions_in_array_initializer" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_enum_constants" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.align_type_members_on_columns" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.align_variable_declarations_on_columns" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.align_assignment_statements_on_columns" value="false"/>
+
+    <!-- Annotations. IntelliJ: type/method/field annotations always on their own line;
+         parameter, local and enum-constant annotations keep whatever the author wrote.
+         Alignment values: 49 = one per line + force, 16 = wrap where necessary (which, with
+         join_wrapped_lines=false above, preserves existing line breaks). -->
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_type" value="49"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_method" value="49"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_field" value="49"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_package" value="49"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_parameter" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_local_variable" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_enum_constant" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_type_annotations" value="0"/>
+    <!-- legacy keys, still read by older JDT -->
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_type" value="insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_method" value="insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_field" value="insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_package" value="insert"/>
+
+    <!-- Keep opening/closing parentheses where the author put them (IntelliJ "keep line breaks").
+         Two ids are misspelled in JDT itself: method_delcaration and for_statment. -->
+    <setting id="org.eclipse.jdt.core.formatter.parentheses_positions_in_annotation" value="preserve_positions"/>
+    <setting id="org.eclipse.jdt.core.formatter.parentheses_positions_in_catch_clause" value="preserve_positions"/>
+    <setting id="org.eclipse.jdt.core.formatter.parentheses_positions_in_enum_constant_declaration" value="preserve_positions"/>
+    <setting id="org.eclipse.jdt.core.formatter.parentheses_positions_in_for_statment" value="preserve_positions"/>
+    <setting id="org.eclipse.jdt.core.formatter.parentheses_positions_in_if_while_statement" value="preserve_positions"/>
+    <setting id="org.eclipse.jdt.core.formatter.parentheses_positions_in_lambda_declaration" value="preserve_positions"/>
+    <setting id="org.eclipse.jdt.core.formatter.parentheses_positions_in_method_delcaration" value="preserve_positions"/>
+    <setting id="org.eclipse.jdt.core.formatter.parentheses_positions_in_method_invocation" value="preserve_positions"/>
+    <setting id="org.eclipse.jdt.core.formatter.parentheses_positions_in_record_declaration" value="preserve_positions"/>
+    <setting id="org.eclipse.jdt.core.formatter.parentheses_positions_in_switch_statement" value="preserve_positions"/>
+    <setting id="org.eclipse.jdt.core.formatter.parentheses_positions_in_try_clause" value="preserve_positions"/>
+
+    <!-- Blank lines (IntelliJ: keep up to 2, 1 around methods, 0 around fields) -->
+    <setting id="org.eclipse.jdt.core.formatter.number_of_empty_lines_to_preserve" value="2"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_package" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_after_package" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_imports" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_after_imports" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_between_import_groups" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_first_class_body_declaration" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_after_last_class_body_declaration" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_member_type" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_method" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_abstract_method" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_field" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_new_chunk" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_between_type_declarations" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.number_of_blank_lines_at_beginning_of_method_body" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.number_of_blank_lines_at_end_of_method_body" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.number_of_blank_lines_at_beginning_of_code_block" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.number_of_blank_lines_at_end_of_code_block" value="0"/>
+
+    <!-- Braces at end of line everywhere (IntelliJ default) -->
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_type_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_anonymous_type_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_enum_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_enum_constant" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_record_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_method_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_constructor_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_block" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_block_in_case" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_switch" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_lambda_body" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_array_initializer" value="end_of_line"/>
+
+    <!-- IntelliJ "Keep when reformatting: control statement in one line" -->
+    <setting id="org.eclipse.jdt.core.formatter.keep_guardian_clause_on_one_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_if_on_one_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_then_statement_on_same_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_else_statement_on_same_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_for_body_on_same_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_while_body_on_same_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_do_while_body_on_same_line" value="true"/>
+    <!-- but blocks, methods, lambdas and classes are expanded, as IntelliJ does -->
+    <setting id="org.eclipse.jdt.core.formatter.keep_code_block_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_method_body_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_lambda_body_block_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_type_declaration_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_anonymous_type_declaration_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_enum_declaration_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_enum_constant_declaration_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_record_declaration_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_record_constructor_on_one_line" value="one_line_never"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_annotation_declaration_on_one_line" value="one_line_never"/>
+
+    <!-- Spaces: IntelliJ writes {1, 2} in array initializers, Eclipse default writes { 1, 2 } -->
+    <setting id="org.eclipse.jdt.core.formatter.insert_space_after_opening_brace_in_array_initializer" value="do not insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_space_before_closing_brace_in_array_initializer" value="do not insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_space_after_closing_paren_in_cast" value="insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_space_before_colon_in_case" value="do not insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_space_before_colon_in_default" value="do not insert"/>
+
+    <!-- switch: cases indented from switch, statements indented from case (IntelliJ default) -->
+    <setting id="org.eclipse.jdt.core.formatter.indent_switchstatements_compare_to_switch" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.indent_switchstatements_compare_to_cases" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.indent_breaks_compare_to_cases" value="true"/>
+
+    <!-- Misc -->
+    <setting id="org.eclipse.jdt.core.formatter.never_indent_line_comments_on_first_column" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.never_indent_block_comments_on_first_column" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_at_end_of_file_if_missing" value="insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_constructor_declaration" value="18"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_record_components" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_resources_in_try" value="18"/>
+  </profile>
+</profiles>
