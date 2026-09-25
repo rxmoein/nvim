@@ -25,6 +25,7 @@ local modules = {
   'customizations.autopairs', -- mini.pairs
   'customizations.snacks', -- explorer, buffer picker, symbol pickers, dashboard, indent guides
   'customizations.recent-files', -- <leader>p MRU picker, <Tab> previous file
+  'customizations.bufferline', -- tab bar of open files, H/L to switch, <leader>bh/bl to move
   'customizations.neo-tree', -- `\` tree with nested Java packages collapsed
   'customizations.floaterm', -- floating terminals, lazygit toggle
   'customizations.dropbar', -- breadcrumb winbar

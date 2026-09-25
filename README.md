@@ -146,6 +146,7 @@ Each file starts with a comment describing what it does and which keys it adds.
 | `autopairs.lua` | mini.pairs: autoclose brackets and quotes, `<CR>` expands a pair |
 | `snacks.lua` | file explorer, buffer and symbol pickers, dashboard, indent guides |
 | `recent-files.lua` | `<Space>p` recent files picker, `<Tab>` previous file |
+| `bufferline.lua` | tab bar of open files; `H`/`L` switch, `<Space>bh`/`<Space>bl` move, `<Space>b1`..`9` jump |
 | `neo-tree.lua` | `\` tree with nested Java packages collapsed into one row |
 | `floaterm.lua` | floating terminals, lazygit toggle |
 | `dropbar.lua` | breadcrumb winbar |
@@ -174,6 +175,9 @@ are written, and the Java new-code formatting runs for those saves too.
 | Keys | Mode | What it does |
 | :- | :- | :- |
 | `<Space>p` | n | Opens a floating "Recent files" list of open buffers, most recently viewed first, with the previous file preselected. Move with `j`/`k`/`gg`/`G`, open with `<Space>`, `h`, `l` or `<CR>`, cancel with `<Esc>` or `q`. |
+| `L` / `H` | n | Goes to the next or previous tab in the bufferline at the top. Wraps around at either end. Replaces vim's default `H`/`L` screen-line jumps. |
+| `<Space>bl` / `<Space>bh` | n | Moves the current tab one place to the right or left. |
+| `<Space>b1` .. `<Space>b9` | n | Jumps to the tab at that position. |
 | `<Tab>` | n | Jumps straight to the previously viewed file. Press again to come back, so it toggles between the last two files. Shares a keycode with `<C-i>` in most terminals. |
 | `<Space>e` | n | Toggles the snacks file explorer: opens it, focuses it and reveals the current file, or closes it when already focused. |
 | `\` | n | Reveals the current file in neo-tree, with nested Java packages collapsed into one row. |
