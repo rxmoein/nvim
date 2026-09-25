@@ -73,6 +73,12 @@ require('monokai-pro').setup {
       SnacksPickerGitStatusDeleted = { fg = c.gitDecoration.deletedResourceForeground },
       SnacksPickerGitStatusIgnored = { fg = c.base.dimmed3 },
 
+      -- Indent guides (snacks.indent). Snacks falls back to `NonText` / `Special` for these,
+      -- and the theme's snacks spec never defines them, so use the theme's own indent-guide
+      -- palette: dim lines everywhere, the current scope a step brighter.
+      SnacksIndent = { fg = c.editorIndentGuide.background, nocombine = true },
+      SnacksIndentScope = { fg = c.editorIndentGuide.activeBackground, nocombine = true },
+
       -- Dashboard (the theme's own values, kept because its snacks spec is disabled).
       SnacksDashboardNormal = { bg = c.editor.background, fg = c.editor.foreground },
       SnacksDashboardDesc = { fg = c.base.dimmed1 },
